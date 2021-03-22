@@ -10,6 +10,7 @@ app = Flask(__name__)
 
 database_name = "Images"
 mongodb_password = "Com75591;"
+
 DB_URI = "mongodb+srv://ikanaporn:{}@cluster0.x8seg.mongodb.net/{}?retryWrites=true&w=majority".format(
     mongodb_password, database_name
 )
@@ -57,6 +58,7 @@ class Labeled(db.Document):
          "lebeledBy": self.lebeledBy,
 
       }
+# it's work -  
 @app.route('/api/uploadunknown', methods=['POST'])
 def api_upload_unknown():
    if request.files:
