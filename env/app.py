@@ -225,7 +225,7 @@ def api_upload_label():
          
       filename = "labeled_"+str(num)
       file.save(os.path.join(app.config["IMAGE_UPLOADS"], "/Users/mai/SeniorProject/flaskwebapi/env/assets/labels/label_"+str(num)+".jpg"))
-      text.save(os.path.join(app.config["FILE_UPLOADS"],"/Users/mai/SeniorProject/flaskwebapi/env/assets/texts/text_"+str(num)+".txt"))
+      text.save(os.path.join(app.config["FILE_UPLOADS"],"/Users/mai/SeniorProject/flaskwebapi/env/assets/texts/label_"+str(num)+".txt"))
      
       ids = str(num)
       label1 = Labeled(ids=ids,filename=filename,imgfile=file,labelfile=text,identify=identify,labeledby=labeledby)
@@ -338,7 +338,6 @@ def retrain():
    #    {"identify" : "bottle"}
    # ))
   
-
    return count
 
    # for obj in Labeled:
