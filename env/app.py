@@ -25,10 +25,12 @@ DB_URI = "mongodb+srv://ikanaporn:{}@cluster0.x8seg.mongodb.net/{}?retryWrites=t
     mongodb_password, database_name
 )
 FOLDER_IMAGE_UPLOADS = "/Users/mai/SeniorProject/flaskwebapi/env/assets/images"
+FOLDER_FILE_UPLOADS = "/Users/mai/SeniorProject/flaskwebapi/env/assets/texts"
 
 app.config['SECRET_KEY']='Th1s1ss3cr3t'
 app.config["MONGODB_HOST"] = DB_URI
 app.config["IMAGE_UPLOADS"] = FOLDER_IMAGE_UPLOADS
+app.config["FILE_UPLOADS"] = FOLDER_FILE_UPLOADS
 
 db = MongoEngine()
 db.init_app(app)
@@ -60,11 +62,15 @@ class Unknown(db.Document):
       }
    
 
+
 class Labeled(db.Document):
+
    ids = db.StringField()
-   filename = db.StringField()
+   filename = db.StringField(unique=True)
+   imgfile = db.ImageField(thumbnail_size=(256,256))
+   labelfile = db.FileField()
    identify = db.StringField()
-   lebeledBy = db.StringField()
+   labeledby = db.StringField()
 
    def to_json(self):
 
@@ -72,27 +78,14 @@ class Labeled(db.Document):
 
          "ids": self.ids,
          "filename": self.filename,
+         "imgfile": self.imgfile,
+         "labelfile": self.imgfile,
          "identify": self.identify,
-         "lebeledBy": self.lebeledBy,
+         "labeledby": self.labeledby,
 
       }
 
-class Labeled(db.Document):
-   ids = db.StringField()
-   filename = db.StringField()
-   identify = db.StringField()
-   lebeledBy = db.StringField()
-
-   def to_json(self):
-
-      return {
-
-         "ids": self.ids,
-         "filename": self.filename,
-         "identify": self.identify,
-         "lebeledBy": self.lebeledBy,
-
-      }
+      #  Labeled(ids=ids,filename=filename,imgfile=file,labelfile=text,identify=identify,lebeledBy=labededBy)
 
 class Device(db.Document):
    ids = db.StringField(unique=True)
@@ -217,15 +210,32 @@ def api_upload_unknown():
 
       return "UnknownImage have been Saved!"
 
+#labeled upload
+@app.route('/api/working/label', methods=['POST','GET'])
+#@token_required
+def api_upload_label():
 
-# @app.route('/api/dbImages', methods=['POST'])
-# def db_images():
-#    lebeled1 = Labeled(ids="0001",filename="mitpol0.png",identify="bottle",lebeledBy="admin1")
-#    lebeled2 = Labeled(ids="0002",filename="mitpol1.png",identify="bottle",lebeledBy="admin2")
-   
-#    lebeled1.save()
-#    lebeled2.save()
-#    return "Created"
+   if request.files:
+
+      identify = request.form["identify"]
+      labeledby = request.form["labeledby"]
+      file = request.files["image"] 
+      text = request.files["text"] 
+      num = len(os.listdir("/Users/mai/SeniorProject/flaskwebapi/env/assets/labels"))+1
+         
+      filename = "labeled_"+str(num)
+      file.save(os.path.join(app.config["IMAGE_UPLOADS"], "/Users/mai/SeniorProject/flaskwebapi/env/assets/labels/label_"+str(num)+".jpg"))
+      text.save(os.path.join(app.config["FILE_UPLOADS"],"/Users/mai/SeniorProject/flaskwebapi/env/assets/texts/text_"+str(num)+".txt"))
+     
+      ids = str(num)
+      label1 = Labeled(ids=ids,filename=filename,imgfile=file,labelfile=text,identify=identify,labeledby=labeledby)
+      label1.save()
+
+      return "Label image have been saved!"
+     
+   else :
+      return "please put a request file."
+     
 
 @app.route('/api/labeled', methods=['GET','POST'])
 def api_lebeled():
@@ -321,7 +331,21 @@ def getTotal():
    return jsonify({'result':output})
 
 
+@app.route('/api/working/retrain', methods=['get'])
+#@token_required
+def retrain():
+   # count = len(Labeled.identify(
+   #    {"identify" : "bottle"}
+   # ))
+  
 
+   return count
+
+   # for obj in Labeled:
+   #    count = len(obj['bottle'])
+
+   #return "retrain sessions"
+   
    
 
 
@@ -343,7 +367,8 @@ def getTotal():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+   app.run(debug=True)
+   #app.run(debug=True,host='http://riorocker97.com/')
 
 
 
