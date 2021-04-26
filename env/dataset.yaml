@@ -1,0 +1,6 @@
+train: ./raw/image/train/
+val: ./raw/image/test/
+
+nc:1
+
+name ['pen']

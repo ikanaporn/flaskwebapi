@@ -10,9 +10,15 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from pymongo import MongoClient
 from functools import wraps
 import datetime
-#from api_constants import mongodb_password
-
-
+import runpy
+from bson import ObjectId
+import csv
+import shutil 
+import math
+import glob
+import tempfile
+import ntpath
+import runpy
 app = Flask(__name__)
 
 
@@ -26,11 +32,21 @@ DB_URI = "mongodb+srv://ikanaporn:{}@cluster0.x8seg.mongodb.net/{}?retryWrites=t
 )
 FOLDER_IMAGE_UPLOADS = "/Users/mai/SeniorProject/flaskwebapi/env/assets/images"
 FOLDER_FILE_UPLOADS = "/Users/mai/SeniorProject/flaskwebapi/env/assets/texts"
+FOLDER_YAML_UPLOADS = "/Users/mai/SeniorProject/flaskwebapi/"
+FOLDER_TRAIN_IMAGE_UPLOADS = "/Users/mai/SeniorProject/flaskwebapi/train/images"
+FOLDER_TEST_IMAGE_UPLOADS = "/Users/mai/SeniorProject/flaskwebapi/test/images"
+FOLDER_TRAIN_LABEL_UPLOADS = "/Users/mai/SeniorProject/flaskwebapi/train/labels"
+FOLDER_TEST_LABEL_UPLOADS = "/Users/mai/SeniorProject/flaskwebapi/test/labels"
 
 app.config['SECRET_KEY']='Th1s1ss3cr3t'
 app.config["MONGODB_HOST"] = DB_URI
 app.config["IMAGE_UPLOADS"] = FOLDER_IMAGE_UPLOADS
 app.config["FILE_UPLOADS"] = FOLDER_FILE_UPLOADS
+app.config["YAML_UPLOADS"] = FOLDER_YAML_UPLOADS
+app.config["TRAIN_IMAGE_UPLOADS"] = FOLDER_TRAIN_IMAGE_UPLOADS
+app.config["TEST_IMAGE_UPLOADS"] = FOLDER_TEST_IMAGE_UPLOADS
+app.config["TRAIN_LABEL_UPLOADS"] = FOLDER_TRAIN_LABEL_UPLOADS
+app.config["TEST_LABEL_UPLOADS"] = FOLDER_TEST_LABEL_UPLOADS
 
 db = MongoEngine()
 db.init_app(app)
@@ -40,8 +56,6 @@ client = MongoClient("mongodb+srv://ikanaporn:{}@cluster0.x8seg.mongodb.net/{}?r
 ))
 
 deviceCollection = client['device']
-
-
 
 class Unknown(db.Document):
 
@@ -215,15 +229,16 @@ def api_upload_unknown():
 #@token_required
 def api_upload_label():
 
+   num = len(os.listdir("/Users/mai/SeniorProject/flaskwebapi/env/assets/labels"))
+   
    if request.files:
 
       identify = request.form["identify"]
       labeledby = request.form["labeledby"]
       file = request.files["image"] 
       text = request.files["text"] 
-      num = len(os.listdir("/Users/mai/SeniorProject/flaskwebapi/env/assets/labels"))+1
-         
-      filename = "labeled_"+str(num)
+      
+      filename = "labeled_"+str(identify)+"_"+str(num)
       file.save(os.path.join(app.config["IMAGE_UPLOADS"], "/Users/mai/SeniorProject/flaskwebapi/env/assets/labels/label_"+str(num)+".jpg"))
       text.save(os.path.join(app.config["FILE_UPLOADS"],"/Users/mai/SeniorProject/flaskwebapi/env/assets/texts/label_"+str(num)+".txt"))
      
@@ -235,7 +250,70 @@ def api_upload_label():
      
    else :
       return "please put a request file."
-     
+
+@app.route('/api/working/retrain-model', methods=['POST','GET'])
+#@token_required
+def api_retrain_model():
+   
+   num = len(os.listdir("/Users/mai/SeniorProject/flaskwebapi/env/assets/images"))
+   
+   if request.files:
+      if num >= 50 :
+         file = request.files["yaml"] 
+         file.save(os.path.join(app.config["YAML_UPLOADS"], "/Users/mai/SeniorProject/flaskwebapi/env/dataset.yaml"))
+         
+         count_train = math.floor((len(os.listdir("/Users/mai/SeniorProject/flaskwebapi/env/assets/images"))*90)/100)
+         folder_label = os.listdir("/Users/mai/SeniorProject/flaskwebapi/env/train/labels")
+         
+         for filename in glob.glob('/Users/mai/SeniorProject/flaskwebapi/env/assets/images/*.jpg')[:count_train-1]: 
+            head, tail = ntpath.split(filename)
+            img = Image.open(filename)
+            img.save(os.path.join(app.config["TRAIN_IMAGE_UPLOADS"], "/Users/mai/SeniorProject/flaskwebapi/env/train/images/"+tail))
+         
+         for filename in glob.glob('/Users/mai/SeniorProject/flaskwebapi/env/assets/texts/*.txt')[:count_train-1]: 
+            head, tail = ntpath.split(filename)
+            filename = open(filename,"w")
+            shutil.copyfile('/Users/mai/SeniorProject/flaskwebapi/env/assets/texts/'+tail,'/Users/mai/SeniorProject/flaskwebapi/env/train/labels/'+tail )
+
+         for filename in glob.glob('/Users/mai/SeniorProject/flaskwebapi/env/assets/images/*.jpg')[count_train:]: 
+            head, tail = ntpath.split(filename)
+            img = Image.open(filename)
+            img.save(os.path.join(app.config["TEST_IMAGE_UPLOADS"], "/Users/mai/SeniorProject/flaskwebapi/env/test/images/"+tail))
+      
+         for filename in glob.glob('/Users/mai/SeniorProject/flaskwebapi/env/assets/texts/*.txt')[count_train:]: 
+            head, tail = ntpath.split(filename)
+            filename = open(filename,"w")
+            shutil.copyfile('/Users/mai/SeniorProject/flaskwebapi/env/assets/texts/'+tail,'/Users/mai/SeniorProject/flaskwebapi/env/test/labels/'+tail )
+         
+       #  runpy.run_path(file_path='train.py')
+      #run python3 train.py --batch 16 --epochs 50 --data mine/dataset.yaml --weights mine/yolov5s.pt
+
+      return "YAML file have been saved and train model."
+
+      else :
+         return "Not enough images, please send more images."
+
+   else :
+      return "please put a request file."
+
+# @app.route('/api/working/train-by-identify', methods=['POST','GET'])
+# #@token_required
+# def api_train_by_identify():
+#    if request :
+#       identify = request.form["identify"]
+#       for i in collection.label :
+#          if identify == identify of col.label :
+#             #save local floder
+#             #if len of local floder == 50 -> run model /
+#             #todo - assign - chang
+#          else : 
+#             #dont have this identify that you spacific.
+         
+#          #find identify in labeled collection that define identify's row = "glass"
+#          #find num that identify's row = "glass" 
+#          #if == 50 ->train
+#          #else ret ส่งมาอีก x รูปจ้า ยังไม่ครบ
+
 
 @app.route('/api/labeled', methods=['GET','POST'])
 def api_lebeled():
@@ -323,41 +401,48 @@ def addTotal():
     
 
 @app.route('/api/info/total', methods=['GET'])
-@token_required
+#@token_required
 def getTotal():
    output = []
    for total in Total.objects[:]:
+      #x =  total.daily
       output.append(total)
    return jsonify({'result':output})
+   #return jsonify({'x':x})
 
 
 @app.route('/api/working/retrain', methods=['get'])
 #@token_required
 def retrain():
-   # count = len(Labeled.identify(
-   #    {"identify" : "bottle"}
-   # ))
-  
-   return count
 
-   # for obj in Labeled:
-   #    count = len(obj['bottle'])
+   ##########
+   # #labeled
+   # filter={
+   #  'imgfile': ObjectId('6081284534d0deed84561cd0')
+   # } 
+   # #images.file
+   # result_img_file = client['API-Detection']['images.file'].find(filter=filter)   
+   # result = client['API-Detection']['labeled'].find(filter=filter)
 
-   #return "retrain sessions"
+  # retrain_identify = request.form['retrain_identify']
+
+   output = []
+   count = 0
+
+   for obj in Labeled.objects[:] :
+      imgfile_id = obj.imgfile._id
+      
+      filter={
+         'files_id': ObjectId(imgfile_id)
+      }
+      
+      result = client['API-Detection']['images.chunks'].find(filter=filter)
+     
+      for cur in result :
+         hexx= cur.buffer.toString('base64')
+         print(hexx)
+
    
-   
-
-
-# @app.route('/api/info/getClient/', methods=['GET'])
-# def getAllClient(uniqueName):
-#   # client = Device.objects(uniqueName=)
-#     output = []
-#    for client in Device.objects[:]:
-#       output.append(client)
-#    return jsonify({'result':output})
-
-
-
 
 #JWT AUTH
 
