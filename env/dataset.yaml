@@ -1,6 +1,4 @@
-train: ./raw/image/train/
-val: ./raw/image/test/
-
-nc:1
-
-name ['pen']
+names: '[bottle]'
+nc: 1
+train: ./train/images
+val: ./test/images

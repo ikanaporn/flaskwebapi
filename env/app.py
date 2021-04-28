@@ -251,44 +251,124 @@ def api_upload_label():
    else :
       return "please put a request file."
 
+# @app.route('/api/working/retrain-model', methods=['POST','GET'])
+# #@token_required
+# def api_retrain_model():
+   
+#    num = len(os.listdir("/Users/mai/SeniorProject/flaskwebapi/env/assets/images"))
+   
+#    if request.files:
+#       if num >= 50 : 
+#          file = request.files["yaml"] 
+#          file.save(os.path.join(app.config["YAML_UPLOADS"], "/Users/mai/SeniorProject/flaskwebapi/env/dataset.yaml"))
+         
+#          count_train = math.floor((len(os.listdir("/Users/mai/SeniorProject/flaskwebapi/env/assets/images"))*90)/100)
+#          folder_label = os.listdir("/Users/mai/SeniorProject/flaskwebapi/env/train/labels")
+         
+#          for filename in glob.glob('/Users/mai/SeniorProject/flaskwebapi/env/assets/images/*.jpg')[:count_train-1]: 
+#             head, tail = ntpath.split(filename)
+#             img = Image.open(filename)
+#             img.save(os.path.join(app.config["TRAIN_IMAGE_UPLOADS"], "/Users/mai/SeniorProject/flaskwebapi/env/train/images/"+tail))
+         
+#          for filename in glob.glob('/Users/mai/SeniorProject/flaskwebapi/env/assets/texts/*.txt')[:count_train-1]: 
+#             head, tail = ntpath.split(filename)
+#             filename = open(filename,"w")
+#             shutil.copyfile('/Users/mai/SeniorProject/flaskwebapi/env/assets/texts/'+tail,'/Users/mai/SeniorProject/flaskwebapi/env/train/labels/'+tail )
+
+#          for filename in glob.glob('/Users/mai/SeniorProject/flaskwebapi/env/assets/images/*.jpg')[count_train:]: 
+#             head, tail = ntpath.split(filename)
+#             img = Image.open(filename)
+#             img.save(os.path.join(app.config["TEST_IMAGE_UPLOADS"], "/Users/mai/SeniorProject/flaskwebapi/env/test/images/"+tail))
+      
+#          for filename in glob.glob('/Users/mai/SeniorProject/flaskwebapi/env/assets/texts/*.txt')[count_train:]: 
+#             head, tail = ntpath.split(filename)
+#             filename = open(filename,"w")
+#             shutil.copyfile('/Users/mai/SeniorProject/flaskwebapi/env/assets/texts/'+tail,'/Users/mai/SeniorProject/flaskwebapi/env/test/labels/'+tail )
+         
+#        #  runpy.run_path(file_path='train.py')
+#       #run python3 train.py --batch 16 --epochs 50 --data mine/dataset.yaml --weights mine/yolov5s.pt
+
+#       return "YAML file have been saved and train model."
+
+#       else :
+#          return "Not enough images, please send more images."
+
+#    else :
+#       return "please put a request file."
+
 @app.route('/api/working/retrain-model', methods=['POST','GET'])
 #@token_required
 def api_retrain_model():
-   
-   num = len(os.listdir("/Users/mai/SeniorProject/flaskwebapi/env/assets/images"))
-   
-   if request.files:
+
+   image_path = "/Users/mai/SeniorProject/flaskwebapi/env/assets/images/"
+   label_path = "/Users/mai/SeniorProject/flaskwebapi/env/assets/texts/"
+   train_path = "/Users/mai/SeniorProject/flaskwebapi/env/train/"
+   test_path  = "/Users/mai/SeniorProject/flaskwebapi/env/test/"
+
+   if request:
+      identify = request.form["identify"]
+
+      for i in os.listdir(train_path+"images/"):
+         os.remove(train_path+"images/"+i)
+      for i in os.listdir(train_path+"labels/"):
+         os.remove(train_path+"labels/"+i)
+      for i in os.listdir(test_path+"images/"):
+         os.remove(test_path+"images/"+i)
+      for i in os.listdir(test_path+"labels/"):
+         os.remove(test_path+"labels/"+i)
+
+
+      for filename in glob.glob(image_path+'*.jpg')[:]: 
+         head, tail = ntpath.split(filename)
+         if identify in tail:
+               img = Image.open(filename)
+               img.save(train_path+"images/"+tail)
+
+      num = len(os.listdir("/Users/mai/SeniorProject/flaskwebapi/env/train/images"))  
       if num >= 50 :
-         file = request.files["yaml"] 
-         file.save(os.path.join(app.config["YAML_UPLOADS"], "/Users/mai/SeniorProject/flaskwebapi/env/dataset.yaml"))
-         
-         count_train = math.floor((len(os.listdir("/Users/mai/SeniorProject/flaskwebapi/env/assets/images"))*90)/100)
-         folder_label = os.listdir("/Users/mai/SeniorProject/flaskwebapi/env/train/labels")
-         
-         for filename in glob.glob('/Users/mai/SeniorProject/flaskwebapi/env/assets/images/*.jpg')[:count_train-1]: 
-            head, tail = ntpath.split(filename)
-            img = Image.open(filename)
-            img.save(os.path.join(app.config["TRAIN_IMAGE_UPLOADS"], "/Users/mai/SeniorProject/flaskwebapi/env/train/images/"+tail))
-         
-         for filename in glob.glob('/Users/mai/SeniorProject/flaskwebapi/env/assets/texts/*.txt')[:count_train-1]: 
-            head, tail = ntpath.split(filename)
-            filename = open(filename,"w")
-            shutil.copyfile('/Users/mai/SeniorProject/flaskwebapi/env/assets/texts/'+tail,'/Users/mai/SeniorProject/flaskwebapi/env/train/labels/'+tail )
+         test_img = []
+         import yaml
+         article_info = {'train': './train/images', 
+                           'val': './test/images',
+                           'nc': 1,
+                           'names': '[' +identify+ ']'
+                           }
 
-         for filename in glob.glob('/Users/mai/SeniorProject/flaskwebapi/env/assets/images/*.jpg')[count_train:]: 
-            head, tail = ntpath.split(filename)
-            img = Image.open(filename)
-            img.save(os.path.join(app.config["TEST_IMAGE_UPLOADS"], "/Users/mai/SeniorProject/flaskwebapi/env/test/images/"+tail))
-      
-         for filename in glob.glob('/Users/mai/SeniorProject/flaskwebapi/env/assets/texts/*.txt')[count_train:]: 
-            head, tail = ntpath.split(filename)
-            filename = open(filename,"w")
-            shutil.copyfile('/Users/mai/SeniorProject/flaskwebapi/env/assets/texts/'+tail,'/Users/mai/SeniorProject/flaskwebapi/env/test/labels/'+tail )
-         
-       #  runpy.run_path(file_path='train.py')
-      #run python3 train.py --batch 16 --epochs 50 --data mine/dataset.yaml --weights mine/yolov5s.pt
+         with open(r'/Users/mai/SeniorProject/flaskwebapi/env/dataset.yaml', 'w') as file:
+               documents = yaml.dump(article_info, file)
 
-      return "YAML file have been saved and train model."
+         for filename in glob.glob(label_path+'*.txt')[:]: 
+               headlabel, taillabel = ntpath.split(filename)
+               if identify in taillabel:
+                  filename = open(filename,"w")
+                  shutil.copyfile(label_path+taillabel,train_path+'labels/'+taillabel )   
+
+               
+         for filename in glob.glob(train_path+"images/"+'*.jpg')[int((len(os.listdir(train_path+"images/"))*90)/100):]: 
+               # head, tail = ntpath.split(filename)
+               # img = Image.open(filename)
+               # img.save(test_path+"images/"+tail)
+               # os.remove(filename)
+            head, tail = ntpath.split(filename)
+            h,t = tail.split(".", 1)
+            test_img.append(h)
+            img = Image.open(filename)
+            img.save(test_path+"images/"+tail)
+            os.remove(filename)
+
+         for filename in glob.glob(train_path+"labels/"+'*.txt')[:]: 
+               # headlabel, taillabel = ntpath.split(filename)
+               # shutil.copyfile(train_path+"labels/"+taillabel,test_path+'labels/'+taillabel )
+               # os.remove(filename)
+            headlabel, taillabel = ntpath.split(filename)
+            h,t = taillabel.split(".", 1)
+            if h in test_img:
+               shutil.copyfile(train_path+"labels/"+taillabel,test_path+'labels/'+taillabel )
+               os.remove(filename)
+               
+         # run train.py เอาที่ช้างแก้ให้
+
+         return "YAML file have been saved and train model."
 
       else :
          return "Not enough images, please send more images."
