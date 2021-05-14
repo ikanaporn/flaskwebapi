@@ -4,22 +4,20 @@ from flask_mongoengine import MongoEngine
 import os
 from IPython.display import Image
 from PIL import Image
-import io
 import jwt
 from werkzeug.security import generate_password_hash, check_password_hash
 from pymongo import MongoClient
 from functools import wraps
 import datetime
-import runpy
 from bson import ObjectId
-import csv
 import shutil 
-import math
 import glob
-import tempfile
 import ntpath
-import runpy
+from flask_cors import CORS
+
 app = Flask(__name__)
+cors = CORS(app, resources={r'/*': {"origins": '*'}})
+#CORS(app)
 
 
 #database_name = "Images"
@@ -181,7 +179,6 @@ def protected():
 
 @app.route('/api/auth/login', methods=['GET', 'POST'])
 def login():
-
    auth = request.authorization
 
    if not auth or not auth.username or not auth.password:  
@@ -206,9 +203,8 @@ def login():
 
 # it's work -  
 @app.route('/api/working/image-detect', methods=['POST'])
-@token_required
+#@token_required
 def api_upload_unknown():
-
    if request.files:
 
       num = len(os.listdir("/Users/mai/SeniorProject/flaskwebapi/env/assets/images"))+1
@@ -223,13 +219,15 @@ def api_upload_unknown():
       unknown1.save()
 
       return "UnknownImage have been Saved!"
+   else:
+     return "else ddkddd"
 
 #labeled upload
 @app.route('/api/working/label', methods=['POST','GET'])
-#@token_required
+@token_required
 def api_upload_label():
 
-   num = len(os.listdir("/Users/mai/SeniorProject/flaskwebapi/env/assets/labels"))
+   num = len(os.listdir("/Users/mai/SeniorProject/flaskwebapi/env/assets/texts"))
    
    if request.files:
 
@@ -239,7 +237,7 @@ def api_upload_label():
       text = request.files["text"] 
       
       filename = "labeled_"+str(identify)+"_"+str(num)
-      file.save(os.path.join(app.config["IMAGE_UPLOADS"], "/Users/mai/SeniorProject/flaskwebapi/env/assets/labels/label_"+str(num)+".jpg"))
+      file.save(os.path.join(app.config["IMAGE_UPLOADS"], "/Users/mai/SeniorProject/flaskwebapi/env/assets/images/label_"+str(num)+".jpg"))
       text.save(os.path.join(app.config["FILE_UPLOADS"],"/Users/mai/SeniorProject/flaskwebapi/env/assets/texts/label_"+str(num)+".txt"))
      
       ids = str(num)
@@ -297,7 +295,7 @@ def api_upload_label():
 #       return "please put a request file."
 
 @app.route('/api/working/retrain-model', methods=['POST','GET'])
-#@token_required
+@token_required
 def api_retrain_model():
 
    image_path = "/Users/mai/SeniorProject/flaskwebapi/env/assets/images/"
@@ -395,9 +393,9 @@ def api_retrain_model():
 #          #else ret ส่งมาอีก x รูปจ้า ยังไม่ครบ
 
 
-@app.route('/api/labeled', methods=['GET','POST'])
+@app.route('/api/test', methods=['GET','POST'])
 def api_lebeled():
-   pass
+   return jsonify({'result':"test success."})
 
 @app.route('/api/labeled/<ids>', methods=['POST'])
 def api_each_labeled():
@@ -481,7 +479,7 @@ def addTotal():
     
 
 @app.route('/api/info/total', methods=['GET'])
-#@token_required
+@token_required
 def getTotal():
    output = []
    for total in Total.objects[:]:

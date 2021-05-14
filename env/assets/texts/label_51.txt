@@ -1,0 +1,64 @@
+@app.route('/api/working/retrain-model', methods=['POST','GET'])
+#@token_required
+def api_retrain_model():
+    if request.files:
+        identify = request.form["identify"]
+
+        for i in os.listdir(train_path+"images/"):
+            os.remove(train_path+"images/"+i)
+        for i in os.listdir(train_path+"labels/"):
+            os.remove(train_path+"labels/"+i)
+        for i in os.listdir(test_path+"images/"):
+            os.remove(test_path+"images/"+i)
+        for i in os.listdir(test_path+"labels/"):
+            os.remove(test_path+"labels/"+i)
+
+        image_path = "/Users/mai/SeniorProject/flaskwebapi/env/assets/images/"
+        label_path = "/Users/mai/SeniorProject/flaskwebapi/env/assets/texts/"
+        train_path = "/Users/mai/SeniorProject/flaskwebapi/env/train/"
+        test_path  = "/Users/mai/SeniorProject/flaskwebapi/env/test/"
+
+        for filename in glob.glob(image_path+'*.jpg')[:]: 
+            head, tail = ntpath.split(filename)
+            if identify in tail:
+                img = Image.open(filename)
+                img.save(train_path+"images/"+tail)
+
+        num = len(os.listdir("/Users/mai/SeniorProject/flaskwebapi/env/train/images"))  
+        if num >= 50 :
+            import yaml
+            article_info = {'train': './train/images', 
+                            'val': './test/images',
+                            'nc': 1,
+                            'names': '[' +identify+ ']'
+                            }
+
+            with open(r'C:/Users/User/Downloads/dataset/dataset.yaml', 'w') as file:
+                documents = yaml.dump(article_info, file)
+                
+            for filename in glob.glob(train_path+"images/"+'*.jpg')[int((len(os.listdir(train_path+"images/"))*90)/100):]: 
+                head, tail = ntpath.split(filename)
+                img = Image.open(filename)
+                img.save(test_path+"images/"+tail)
+                os.remove(filename)
+
+            for filename in glob.glob(label_path+'*.txt')[:]: 
+                headlabel, taillabel = ntpath.split(filename)
+                if identify in taillabel:
+                    filename = open(filename,"w")
+                    shutil.copyfile(label_path+taillabel,train_path+'labels/'+taillabel )   
+
+            for filename in glob.glob(train_path+"labels/"+'*.txt')[int((len(os.listdir(train_path+"labels/"))*90)/100):]: 
+                headlabel, taillabel = ntpath.split(filename)
+                shutil.copyfile(train_path+"labels/"+taillabel,test_path+'labels/'+taillabel )
+                os.remove(filename)
+                
+            # run train.py เอาที่ช้างแก้ให้
+
+            return "YAML file have been saved and train model."
+
+        else :
+            return "Not enough images, please send more images."
+
+    else :
+        return "please put a request file."
