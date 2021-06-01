@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
+from enum import unique
 from flask import Flask,make_response,request,jsonify
+import numpy as np
 from flask_mongoengine import MongoEngine
 import os
 from IPython.display import Image
@@ -14,6 +16,10 @@ import shutil
 import glob
 import ntpath
 from flask_cors import CORS
+from io import BytesIO
+import cv2
+import requests
+
 
 app = Flask(__name__)
 cors = CORS(app, resources={r'/*': {"origins": '*'}})
@@ -54,6 +60,12 @@ client = MongoClient("mongodb+srv://ikanaporn:{}@cluster0.x8seg.mongodb.net/{}?r
 ))
 
 deviceCollection = client['device']
+
+url = "http://127.0.0.1:5000/api/info/addTotal"  # request url
+
+headers = {  # headers dict to send in request
+  "header_name": "headers_value",
+ }
 
 class Unknown(db.Document):
 
@@ -134,7 +146,7 @@ class Model(db.Document):
 
 class Total(db.Document):
 
-   ids = db.StringField()
+   unique_name = db.StringField()
    daily = db.IntField()
    total = db.IntField()
  
@@ -142,7 +154,7 @@ class Total(db.Document):
    def to_json(self):
 
       return {
-         "ids":self.ids,
+         "unique_name":self.unique_name,
          "daily": self.daily,
          "total": self.total,
         
@@ -205,22 +217,36 @@ def login():
 @app.route('/api/working/image-detect', methods=['POST'])
 #@token_required
 def api_upload_unknown():
+   
+   # if 'file' not in request.files:
+   #    error = "Missing data source!"
+   #    return jsonify({'error': error})
    if request.files:
-
+      print("file is already")
       num = len(os.listdir("/Users/mai/SeniorProject/flaskwebapi/env/assets/images"))+1
       file = request.files["image"] 
+      #img = Image.open(file.stream)
+      #image_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+      #print("ddd",img)
+      #image_sequence = img.getdata()
+      #image_array = np.array(image_sequence)
+      #print("array np:",image_array)
+      #image_avg = np.mean(image_array)
+      
+      #print("img avg",image_avg)
       filename = "new_unknown_"+str(num)
       time = 0
 
       file.save(os.path.join(app.config["IMAGE_UPLOADS"], "/Users/mai/SeniorProject/flaskwebapi/env/assets/images/new_unknown_"+str(num)+".jpg"))
-      
+
       unknown1 = Unknown(ids=num,filename=filename,times=time,file=file)
-      
+
       unknown1.save()
 
       return "UnknownImage have been Saved!"
    else:
-     return "else ddkddd"
+      return "something wrong!"
+   
 
 #labeled upload
 @app.route('/api/working/label', methods=['POST','GET'])
@@ -444,6 +470,7 @@ def getClient(uniqueName):
    return jsonify({'result':client})
    # return Labeled.query.filter_by(uniqueName=data['uniqueName']).first()
 
+#9.Added model
 @app.route('/api/info/addModel', methods=['POST'])
 @token_required
 def addModel():
@@ -468,41 +495,41 @@ def getOneModel(name):
    model = Model.objects.get(name=name)
    return jsonify({'result':model})
 
+#10.1Counting
 @app.route('/api/info/addTotal', methods=['POST'])
-@token_required
+#@token_required
 def addTotal():
+
+   total = 0
+   for obj in Total.objects[:]:
+      x = obj.daily
+      total = total + x
+      print(total)
+      #output.append(total)
    data = request.get_json()
-   newTotal = Total(ids=data['ids'],daily=data['daily'],total=data['total'])
+   total = total + data['daily']
+   newTotal = Total(unique_name=data['unique_name'],daily=data['daily'],total=total)
    newTotal.save()
 
    return "Successfully model added!"
     
-
-@app.route('/api/info/total', methods=['GET'])
-@token_required
-def getTotal():
+#10.2Counting
+@app.route('/api/info/total/<name>', methods=['GET'])
+#@token_required
+def getTotal(name):
    output = []
-   for total in Total.objects[:]:
-      #x =  total.daily
-      output.append(total)
+   for obj in Total.objects[:]:
+      if (obj.unique_name) == name :
+      #  model = Model.objects.get(name=name)
+      # return jsonify({'result':model})
+         output.append(obj)
+
    return jsonify({'result':output})
-   #return jsonify({'x':x})
 
 
 @app.route('/api/working/retrain', methods=['get'])
 #@token_required
 def retrain():
-
-   ##########
-   # #labeled
-   # filter={
-   #  'imgfile': ObjectId('6081284534d0deed84561cd0')
-   # } 
-   # #images.file
-   # result_img_file = client['API-Detection']['images.file'].find(filter=filter)   
-   # result = client['API-Detection']['labeled'].find(filter=filter)
-
-  # retrain_identify = request.form['retrain_identify']
 
    output = []
    count = 0
@@ -520,7 +547,21 @@ def retrain():
          hexx= cur.buffer.toString('base64')
          print(hexx)
 
-   
+
+# @app.route('api/addModel',methods=['post'])
+# @token_required
+# def add_model():
+
+#    pt_path = os.getcwd()+"/api_unknown/model"
+
+#    if request.files:
+#       file = request.files["file"]
+#       name = request.FILES[file].name
+#       file.save(pt_path+"/"+name)
+#       return "Your model have been saved."
+#    else :
+#       return "Please send model file(.pt) again."
+
 
 #JWT AUTH
 
