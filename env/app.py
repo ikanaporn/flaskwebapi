@@ -119,6 +119,7 @@ class Device(db.Document):
    password = db.StringField(nullable=True)
    uniqueName = db.StringField(nullable=True)
 
+
    def to_json(self):
 
       return {
